@@ -1,0 +1,18 @@
+im=imread('board.PNG','png');
+im2=rgb2gray(im);
+imhist(im2);
+level=graythresh(im2);
+im3=imbinarize(im2,level);
+im4=imopen(im3,strel('disk',2));
+im5=imcomplement(im4);
+im6=imopen(im5,strel('disk',10));
+[labels,numlabels]=bwlabel(im6);
+subplot(1,6,1),imshow(im),title('Original picture');
+subplot(1,6,2),imshow(im2),title('Grayscale picture');
+subplot(1,6,3),imshow(im3),title('Binary picture');
+subplot(1,6,4),imshow(im4),title('Denoised picture');
+subplot(1,6,5),imshow(im5),title('Complement picture');
+subplot(1,6,6),imshow(im6),title('Result picture');
+vislabels(labels);
+imtool coins;
+numlabels
