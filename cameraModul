@@ -1,12 +1,47 @@
-im=imread('board.PNG','png');
+im=imread('Checkers_board.PNG','png');
 im2=rgb2gray(im);
 imhist(im2);
 level=graythresh(im2);
-im3=imbinarize(im2,level);
+disp(level);
+im3=imbinarize(im2, 0.5);
 im4=imopen(im3,strel('disk',2));
 im5=imcomplement(im4);
 im6=imopen(im5,strel('disk',10));
 [labels,numlabels]=bwlabel(im6);
+redPieces = [];
+blackPieces = [];
+R = im(:,:,1);
+G = im(:,:,2);
+B = im(:,:,3);
+
+stats = regionprops(labels, 'PixelIdxList');
+
+% Object 1
+idx1 = stats(1).PixelIdxList;
+obj1Color = [ mean(R(idx1)), mean(G(idx1)), mean(B(idx1)) ];
+
+% Object 2
+idx2 = stats(2).PixelIdxList;
+obj2Color = [ mean(R(idx2)), mean(G(idx2)), mean(B(idx2)) ];
+
+for i = 1:40
+    % Extract color information for each object and store in respective arrays
+    if i <= numlabels
+        idx = stats(i).PixelIdxList;
+        color = [mean(R(idx)), mean(G(idx)), mean(B(idx))];
+        if color(1) > color(2) && color(1) > color(3)
+            redPieces = [redPieces; color]; % Store red piece color
+        else
+            blackPieces = [blackPieces; color]; % Store black piece color
+        end
+    end
+end
+
+disp(blackPieces);
+disp(redPieces);
+
+fprintf('Object 1 RGB: [%.1f %.1f %.1f]\n', obj1Color);
+fprintf('Object 2 RGB: [%.1f %.1f %.1f]\n', obj2Color); 
 subplot(1,6,1),imshow(im),title('Original picture');
 subplot(1,6,2),imshow(im2),title('Grayscale picture');
 subplot(1,6,3),imshow(im3),title('Binary picture');
@@ -14,5 +49,4 @@ subplot(1,6,4),imshow(im4),title('Denoised picture');
 subplot(1,6,5),imshow(im5),title('Complement picture');
 subplot(1,6,6),imshow(im6),title('Result picture');
 vislabels(labels);
-imtool coins;
 numlabels
