@@ -1,52 +1,76 @@
-im=imread('Checkers_board.PNG','png');
-im2=rgb2gray(im);
-imhist(im2);
-level=graythresh(im2);
-disp(level);
-im3=imbinarize(im2, 0.5);
-im4=imopen(im3,strel('disk',2));
-im5=imcomplement(im4);
-im6=imopen(im5,strel('disk',10));
-[labels,numlabels]=bwlabel(im6);
-redPieces = [];
-blackPieces = [];
-R = im(:,:,1);
-G = im(:,:,2);
-B = im(:,:,3);
+%We first read image and distinguish objects(checker pieces) on it
+im = imread('Checkers_board.png', 'png');
+im2 = rgb2gray(im);
+im3 = imbinarize(im2, 0.6);
+im4 = imopen(im3, strel('disk', 2));
+im5 = imcomplement(im4);
+im6 = imopen(im5, strel('disk', 10));
 
-stats = regionprops(labels, 'PixelIdxList');
+[labels, numlabels] = bwlabel(im6);
 
-% Object 1
+Board = zeros(8, 8); %Here we create matrix that would represent the board
+
+R = im(:, :, 1);
+G = im(:, :, 2);
+B = im(:, :, 3);
+% We extract the red, green, and blue channels separately for color analysis
+
+stats = regionprops(labels, 'all');
+
+% We know that first object is of black pieces and second of white, so by
+% looking at the color of those object we can distinguish oponents' pieces
+% from ours
 idx1 = stats(1).PixelIdxList;
-obj1Color = [ mean(R(idx1)), mean(G(idx1)), mean(B(idx1)) ];
-
-% Object 2
+obj1Color = [mean(R(idx1)), mean(G(idx1)), mean(B(idx1))];
 idx2 = stats(2).PixelIdxList;
-obj2Color = [ mean(R(idx2)), mean(G(idx2)), mean(B(idx2)) ];
+obj2Color = [mean(R(idx2)), mean(G(idx2)), mean(B(idx2))];
 
-for i = 1:40
-    % Extract color information for each object and store in respective arrays
-    if i <= numlabels
-        idx = stats(i).PixelIdxList;
-        color = [mean(R(idx)), mean(G(idx)), mean(B(idx))];
-        if color(1) > color(2) && color(1) > color(3)
-            redPieces = [redPieces; color]; % Store red piece color
-        else
-            blackPieces = [blackPieces; color]; % Store black piece color
-        end
+% here we look at the size of the image so we can know 
+% how big one square is 
+[H, W, ~] = size(im);
+squareW = W / 8;
+squareH = H / 8;
+
+
+for i = 1:numlabels
+    % We look at the colot of the object and its location
+    idx = stats(i).PixelIdxList;
+    loc = stats(i).Centroid;
+    color = [mean(R(idx)), mean(G(idx)), mean(B(idx))];
+    col = ceil(loc(1) / squareW);
+    row = ceil(loc(2) / squareH);
+    
+    %If the color shows that it is our piece we put value 1,
+    %if not, then we put value 2
+    if color(1) > color(2) && color(1) > color(3)
+        Board(row, col) = 1;
+    else
+        Board(row, col) = 2;
     end
 end
 
-disp(blackPieces);
-disp(redPieces);
+% Here we print the board to check if it is done correctly 
+disp('Board (rows 1 to 8):');
+for row = 1:8
+    fprintf('%d %d %d %d %d %d %d %d\n', Board(row, :));
+end
 
-fprintf('Object 1 RGB: [%.1f %.1f %.1f]\n', obj1Color);
-fprintf('Object 2 RGB: [%.1f %.1f %.1f]\n', obj2Color); 
-subplot(1,6,1),imshow(im),title('Original picture');
-subplot(1,6,2),imshow(im2),title('Grayscale picture');
-subplot(1,6,3),imshow(im3),title('Binary picture');
-subplot(1,6,4),imshow(im4),title('Denoised picture');
-subplot(1,6,5),imshow(im5),title('Complement picture');
-subplot(1,6,6),imshow(im6),title('Result picture');
-vislabels(labels);
-numlabels
+BoardNew = zeros(8, 8);
+value1 = 8;
+value2 = 8;
+
+while true
+    for i = 1:numlabels
+        idx = stats(i).PixelIdxList;
+        loc = stats(i).Centroid;
+        color = [mean(R(idx)), mean(G(idx)), mean(B(idx))];
+        if color(1) > color(2) && color(1) > color(3)
+            BoardNew(row, col) = 1;
+        else
+            BoardNew(row, col) = 2;
+        end
+    end
+    if BoardNew ~= Board
+        
+end
+
