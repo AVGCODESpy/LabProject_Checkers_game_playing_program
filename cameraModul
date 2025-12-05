@@ -1,76 +1,101 @@
-%We first read image and distinguish objects(checker pieces) on it
-im = imread('Checkers_board.png', 'png');
-im2 = rgb2gray(im);
-im3 = imbinarize(im2, 0.6);
+cam = webcam('Microsoft® LifeCam Cinema(TM)');
+pause(0.5); 
+im = snapshot(cam);
+clear cam;
+
+im2 = rgb2gray(im); 
+im2d = im2double(im2);               
+im3 = imbinarize(im2d, 0.4);
 im4 = imopen(im3, strel('disk', 2));
 im5 = imcomplement(im4);
-im6 = imopen(im5, strel('disk', 10));
+im6 = imopen(im5, strel('disk', 7));
 
 [labels, numlabels] = bwlabel(im6);
 
-Board = zeros(8, 8); %Here we create matrix that would represent the board
+imshow(im6);
+
+[H, W, ~] = size(im);
+Board = zeros(8, 8);
 
 R = im(:, :, 1);
 G = im(:, :, 2);
 B = im(:, :, 3);
-% We extract the red, green, and blue channels separately for color analysis
 
-stats = regionprops(labels, 'all');
+stats = regionprops(labels, 'Centroid', 'PixelIdxList');
 
-% We know that first object is of black pieces and second of white, so by
-% looking at the color of those object we can distinguish oponents' pieces
-% from ours
-idx1 = stats(1).PixelIdxList;
-obj1Color = [mean(R(idx1)), mean(G(idx1)), mean(B(idx1))];
-idx2 = stats(2).PixelIdxList;
-obj2Color = [mean(R(idx2)), mean(G(idx2)), mean(B(idx2))];
-
-% here we look at the size of the image so we can know 
-% how big one square is 
+% Get square size
 [H, W, ~] = size(im);
 squareW = W / 8;
 squareH = H / 8;
 
-
 for i = 1:numlabels
-    % We look at the colot of the object and its location
     idx = stats(i).PixelIdxList;
-    loc = stats(i).Centroid;
-    color = [mean(R(idx)), mean(G(idx)), mean(B(idx))];
+    loc = stats(i).Centroid; % [x, y]
+
+    % Determine color
+    px = [mean(R(idx)), mean(G(idx)), mean(B(idx))];
+
+    % Convert centroid position -> board row/column
     col = ceil(loc(1) / squareW);
     row = ceil(loc(2) / squareH);
-    
-    %If the color shows that it is our piece we put value 1,
-    %if not, then we put value 2
-    if color(1) > color(2) && color(1) > color(3)
-        Board(row, col) = 1;
+
+    if px(1) > px(2) && px(1) > px(3)
+        Board(row, col) = 1;   % RED piece (your side)
     else
-        Board(row, col) = 2;
+        Board(row, col) = 2;   % BLACK piece (opponent)
     end
 end
 
-% Here we print the board to check if it is done correctly 
-disp('Board (rows 1 to 8):');
-for row = 1:8
-    fprintf('%d %d %d %d %d %d %d %d\n', Board(row, :));
-end
 
-BoardNew = zeros(8, 8);
-value1 = 8;
-value2 = 8;
+while(true)
+    % Checking the board
+    vid.ReturnedColorSpace = 'rgb';
+    triggerconfig(vid,'manual');
+    vid.FramesPerTrigger = 1;
+    start(vid);
+    pause(0.5);
+    trigger(vid);
+    im = getdata(vid,1);
+    stop(vid); 
+    delete(vid);
+    im2 = rgb2gray(im);
+    im3 = imbinarize(im2, 0.7);
+    im4 = imopen(im3, strel('disk', 2));
+    im5 = imcomplement(im4);
+    im6 = imopen(im5, strel('disk', 10));
+    
+    [labels, numlabels] = bwlabel(im6);
+    
+    BoardNew = zeros(8, 8);
+    
+    stats = regionprops(labels, 'Centroid', 'PixelIdxList');
 
-while true
     for i = 1:numlabels
         idx = stats(i).PixelIdxList;
         loc = stats(i).Centroid;
-        color = [mean(R(idx)), mean(G(idx)), mean(B(idx))];
-        if color(1) > color(2) && color(1) > color(3)
-            BoardNew(row, col) = 1;
+    
+        % Determine color
+        px = [mean(R(idx)), mean(G(idx)), mean(B(idx))];
+    
+        % Convert centroid position -> board row/column
+        col = ceil(loc(1) / squareW);
+        row = ceil(loc(2) / squareH);
+    
+        if px(1) > px(2) && px(1) > px(3)
+            BoardNew(row, col) = 1;   % RED piece (your side)
         else
-            BoardNew(row, col) = 2;
+            BoardNew(row, col) = 2;   % BLACK piece (opponent)
         end
     end
-    if BoardNew ~= Board
+    %check if board has changed
+    if Board ~= BoardNew
+        moveBoards = generateMoves(Board);
+        [bestVal, bestBoard] = chooseBestMove(Board);
         
+        fprintf('\nBest move evaluation (higher is better for RED): %d\n', bestVal);
+        disp('Board after best move:');
+        for r = 1:8
+            fprintf('%d %d %d %d %d %d %d %d\n', bestBoard(r, :));
+        end
+    end
 end
-
