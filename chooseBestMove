@@ -1,0 +1,21 @@
+function [bestVal, bestBoard] = chooseBestMove(Board)
+    moveBoards = generateMoves(Board);
+
+    if isempty(moveBoards)
+        bestVal   = evaluateBoard(Board);
+        bestBoard = Board;
+        return;
+    end
+
+    bestVal   = -Inf;
+    bestBoard = Board;
+
+    for i = 1:numel(moveBoards)
+        B = moveBoards{i};
+        val = evaluateBoard(B);
+        if val > bestVal
+            bestVal   = val;
+            bestBoard = B;
+        end
+    end
+end
